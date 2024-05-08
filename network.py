@@ -15,19 +15,26 @@ def start_server(host, port):
         client_thread.start()
 
 def handle_client(client_socket, addr):
-    while True:
-        message = client_socket.recv(1024).decode()
-        if not message:
-            break
-        print(f"Received message: {message}")
-        from_user, msg = message.split(": ", 1)
-        save_message(from_user, f"{addr[0]}:{addr[1]}", msg)
-        # Fetch pending messages for the user and send them
-        pending_messages = fetch_pending_messages(f"{addr[0]}:{addr[1]}")
-        for message in pending_messages:
-            client_socket.send(message[0].encode())
-        mark_messages_as_sent(f"{addr[0]}:{addr[1]}")
-    client_socket.close()
+    try:
+        while True:
+            message = client_socket.recv(1024).decode()
+            if not message:
+                break
+            print(f"Received message: {message}")
+            from_user, msg = message.split(": ", 1)
+            save_message(from_user, f"{addr[0]}:{addr[1]}", msg)
+            # Fetch pending messages for the user and send them
+            pending_messages = fetch_pending_messages(f"{addr[0]}:{addr[1]}")
+            for message in pending_messages:
+                client_socket.send(message[0].encode())
+            mark_messages_as_sent(f"{addr[0]}:{addr[1]}")
+    except ConnectionResetError:
+        print(f"Connection reset by peer {addr}")
+    except ConnectionAbortedError:
+        print(f"Connection aborted by host {addr}")
+    finally:
+        client_socket.close()
+        print(f"Connection closed with {addr}")
 
 def connect_to_peer(host, port):
     """
